@@ -31,6 +31,7 @@ public class SatGenerator {
      */
     private List<String> generateBaseConstraints() {
         List<String> constraints = new ArrayList<>();
+        Board.allCoordinates().forEach(coord -> constraints.addAll(generateCellConstraints(coord)));
         for (int i = 0; i < 9; i++) {
             constraints.addAll(generateRowConstraints(i));
             constraints.addAll(generateColumnConstraints(i));
@@ -39,12 +40,20 @@ public class SatGenerator {
         return constraints;
     }
 
+
     private List<String> generateBoardConstraints(Board board) {
         return Board.allCoordinates()
                 .filter(coord -> board.get(coord) != null)
                 .map(coord -> new Assignment(coord, board.get(coord)))
                 .map(Assignment::toString)
                 .collect(Collectors.toList());
+    }
+
+    private List<String> generateCellConstraints(Coordinate coord) {
+        return writeConstraints(Board.numbers()
+                .boxed()
+                .map(n -> new Assignment(coord,n))
+                .toArray(Assignment[]::new));
     }
 
     private List<String> generateRowConstraints(int row) {
