@@ -13,13 +13,13 @@ class Assignment {
     public Assignment(int row, int col, int n) {
         this.row = row;
         this.col = col;
-        this.n = n;
+        this.n = n-1;
     }
 
     public Assignment(Coordinate coord, int n) {
         this.row = coord.row;
         this.col = coord.column;
-        this.n = n;
+        this.n = n-1;
     }
 
     public Assignment(int encodedName) {
@@ -37,5 +37,15 @@ class Assignment {
         code = code * 9 + n;
         code += 1;
         return code;
+    }
+
+    @Override
+    public String toString() {
+        return Integer.toString(encode());
+//        return algebraicForm();
+    }
+
+    public String algebraicForm() {
+        return String.format("A(%d,%d,%d)", row, col, n+1);
     }
 }

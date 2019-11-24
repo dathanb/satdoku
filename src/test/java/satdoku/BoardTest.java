@@ -110,6 +110,6 @@ public class BoardTest {
 
     @Test
     public void test_validSolution_validates() {
-        assertTrue(TestBoards.getTestBoard1().validate());
+        assertTrue(TestBoards.getSolution1().validate());
     }
 }

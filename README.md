@@ -55,3 +55,6 @@ That's easy enough, right? We have 9 possible values of `x`, 9 possible values o
 So the encoding of `A(y,x,n)` into an orginal variable is just `((y * 9) + x) * 9 + n`. Or, `y*81 + x*9 + n`.
 
 And when we decode the output, we can just reverse that encoding.
+
+OK, I have it almost working, but I forgot to add mutual exclusion between multiple variable assignments to a single cell.
+So once we add that in, things should be hunky dory.

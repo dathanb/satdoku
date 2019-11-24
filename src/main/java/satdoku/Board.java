@@ -25,6 +25,10 @@ public class Board {
     public Board() {
     }
 
+    public Board(Integer[][] nums) {
+        Board.allCoordinates().forEach(coord -> board[coord.row][coord.column] = nums[coord.row][coord.column]);
+    }
+
     public void set(int row, int col, Integer value) {
         board[row][col] = value;
     }
@@ -141,5 +145,9 @@ public class Board {
         return IntStream.range(0, 3)
                 .boxed()
                 .flatMap(rowOffset -> IntStream.range(0, 3).mapToObj(colOffset -> new Coordinate(startingRow + rowOffset, startingCol+colOffset)));
+    }
+
+    public static IntStream numbers() {
+        return IntStream.rangeClosed(1, 9);
     }
 }

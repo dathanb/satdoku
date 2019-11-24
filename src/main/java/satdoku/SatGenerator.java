@@ -17,12 +17,12 @@ public class SatGenerator {
     public static final int NUM_VARIABLES = 9 * NUM_CELLS;
 
     public String generate(Board board) {
-        List<String> baseConstraints = generateBaseConstraints();
+        List<String> baseConstraints = generateBaseConstraints();//.stream().limit(37*19).collect(Collectors.toList());
         List<String> boardConstraints = generateBoardConstraints(board);
         final StringBuilder builder = new StringBuilder();
         builder.append(String.format("p cnf %d %d\n", NUM_VARIABLES, baseConstraints.size() + boardConstraints.size()));
-        baseConstraints.forEach(s -> builder.append(s).append("\n"));
-        boardConstraints.forEach(s -> builder.append(s).append("\n"));
+        baseConstraints.forEach(s -> builder.append(s).append("    0\n"));
+        boardConstraints.forEach(s -> builder.append(s).append("    0\n"));
         return builder.toString();
     }
 
@@ -43,8 +43,7 @@ public class SatGenerator {
         return Board.allCoordinates()
                 .filter(coord -> board.get(coord) != null)
                 .map(coord -> new Assignment(coord, board.get(coord)))
-                .mapToInt(Assignment::encode)
-                .mapToObj(Integer::toString)
+                .map(Assignment::toString)
                 .collect(Collectors.toList());
     }
 
@@ -62,7 +61,7 @@ public class SatGenerator {
 
     private List<String> generateConstraints(Supplier<Stream<Coordinate>> cells) {
         final List<String> constraints = new ArrayList<>();
-        IntStream.range(0, 9)
+        Board.numbers()
                 .boxed()
                 .forEach(num -> {
                             Assignment[] assignments = cells.get()
@@ -79,15 +78,14 @@ public class SatGenerator {
         // write the proposition that at least one of these assignments is true
         StringBuilder positiveAssignmentBuilder = new StringBuilder();
         for (Assignment assignment: assignments) {
-            positiveAssignmentBuilder.append(assignment.encode())
-                    .append("\t");
+            positiveAssignmentBuilder.append(String.format("%-10s", assignment));
         }
-        constraints.add(positiveAssignmentBuilder.toString());
+        constraints.add(positiveAssignmentBuilder.toString().trim());
 
         // now write the no-two-assignments-are-both-true proposition
         for (int i=0; i<9; i++) {
             for (int j = i + 1; j < 9; j++) {
-                constraints.add(String.format("-%d\t-%d", assignments[i].encode(), assignments[j].encode()));
+                constraints.add(String.format("-%-10s-%-10s", assignments[i], assignments[j]).trim());
             }
         }
         return constraints;
