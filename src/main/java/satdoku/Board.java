@@ -117,10 +117,9 @@ public class Board {
     }
 
     public static Stream<Coordinate> allCoordinates() {
-        return Arrays.stream(new Coordinate[]{
-                new Coordinate(0, 0),
-                new Coordinate(0, 1),
-        });
+        return IntStream.range(0, 9)
+                .boxed()
+                .flatMap(Board::rowCoordinates);
     }
 
     public static Stream<Coordinate> rowCoordinates(int row) {

@@ -1,77 +1,96 @@
 package satdoku;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
 /**
  * Generates a SAT statement in CNF form for a Sudoku board.
  */
 public class SatGenerator {
+    public static final int NUM_ROWS = 9;
+    public static final int NUM_COLS = 9;
+    public static final int NUM_CELLS = NUM_ROWS * NUM_COLS;
+    public static final int NUM_VARIABLES = 9 * NUM_CELLS;
+
     public String generate(Board board) {
-        StringBuilder builder = new StringBuilder();
-        generateBaseConstraints(builder);
+        List<String> baseConstraints = generateBaseConstraints();
+        List<String> boardConstraints = generateBoardConstraints(board);
+        final StringBuilder builder = new StringBuilder();
+        builder.append(String.format("p cnf %d %d\n", NUM_VARIABLES, baseConstraints.size() + boardConstraints.size()));
+        baseConstraints.forEach(s -> builder.append(s).append("\n"));
+        boardConstraints.forEach(s -> builder.append(s).append("\n"));
         return builder.toString();
     }
 
     /**
      * Generate all the basic Sudoku constraints in CNF form.
      */
-    private void generateBaseConstraints(StringBuilder builder) {
+    private List<String> generateBaseConstraints() {
+        List<String> constraints = new ArrayList<>();
         for (int i = 0; i < 9; i++) {
-            generateRowConstraints(i, builder);
-            generateColumnConstraints(i, builder);
-            generateMiniSquareConstraints(i, builder);
+            constraints.addAll(generateRowConstraints(i));
+            constraints.addAll(generateColumnConstraints(i));
+            constraints.addAll(generateMiniSquareConstraints(i));
         }
+        return constraints;
     }
 
-    private void generateRowConstraints(int row, StringBuilder output) {
-        for (int n = 0; n < 9; n++) {
-            Assignment[] rowAssignments = new Assignment[]{
-                    new Assignment(row,0, n),
-                    new Assignment(row,1, n),
-                    new Assignment(row,2, n),
-                    new Assignment(row,3, n),
-                    new Assignment(row,4, n),
-                    new Assignment(row,5, n),
-                    new Assignment(row,6, n),
-                    new Assignment(row,7, n),
-                    new Assignment(row,8, n),
-            };
+    private List<String> generateBoardConstraints(Board board) {
+        return Board.allCoordinates()
+                .filter(coord -> board.get(coord) != null)
+                .map(coord -> new Assignment(coord, board.get(coord)))
+                .mapToInt(Assignment::encode)
+                .mapToObj(Integer::toString)
+                .collect(Collectors.toList());
+    }
+
+    private List<String> generateRowConstraints(int row) {
+        return generateConstraints(() -> Board.rowCoordinates(row));
+    }
+
+    private List<String> generateColumnConstraints(int col) {
+        return generateConstraints(() -> Board.colCoordinates(col));
+    }
+
+    private List<String> generateMiniSquareConstraints(int square) {
+        return generateConstraints(() -> Board.miniSquareCoordinates(square));
+    }
+
+    private List<String> generateConstraints(Supplier<Stream<Coordinate>> cells) {
+        final List<String> constraints = new ArrayList<>();
+        IntStream.range(0, 9)
+                .boxed()
+                .forEach(num -> {
+                            Assignment[] assignments = cells.get()
+                                    .map(coord -> new Assignment(coord, num))
+                                    .toArray(Assignment[]::new);
+                            constraints.addAll(writeConstraints(assignments));
+                        }
+                );
+        return constraints;
+    }
+
+    private List<String> writeConstraints(Assignment[] assignments) {
+        List<String> constraints = new ArrayList<>();
+        // write the proposition that at least one of these assignments is true
+        StringBuilder positiveAssignmentBuilder = new StringBuilder();
+        for (Assignment assignment: assignments) {
+            positiveAssignmentBuilder.append(assignment.encode())
+                    .append("\t");
         }
-    }
+        constraints.add(positiveAssignmentBuilder.toString());
 
-    private void generateColumnConstraints(int col, StringBuilder output) {
-    }
-
-    private void generateMiniSquareConstraints(int square, StringBuilder output) {
+        // now write the no-two-assignments-are-both-true proposition
+        for (int i=0; i<9; i++) {
+            for (int j = i + 1; j < 9; j++) {
+                constraints.add(String.format("-%d\t-%d", assignments[i].encode(), assignments[j].encode()));
+            }
+        }
+        return constraints;
     }
 }
 
-/**
- * Given row, column, and N, represents a boolean proposition that the cell at `row,column` is assigned the value N.
- * <p>
- * Also responsible for encoding and decoding that proposition into a densely-packed, ordinal variable space.
- */
-class Assignment {
-    private final int row;
-    private final int col;
-    private final int n;
-
-    public Assignment(int row, int col, int n) {
-        this.row = row;
-        this.col = col;
-        this.n = n;
-    }
-
-    public Assignment(int encodedName) {
-        this.n = encodedName % 9;
-        encodedName /= 9;
-        this.col = encodedName % 9;
-        encodedName /= 9;
-        this.row = encodedName % 9;
-    }
-
-    public int encode() {
-        int code = row;
-        code = code * 9 + col;
-        code = code * 9 + n;
-        return code;
-    }
-}
